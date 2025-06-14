@@ -31,41 +31,70 @@ menu = st.sidebar.radio("Pilih Menu:", [
 # MENU 1: Optimasi Produksi
 # =============================
 if menu == "Optimasi Produksi":
-    st.title("1. Optimasi Produksi (Linear Programming)")
+    st.title("1. Optimasi Produksi Keju (Input Pengguna)")
 
-    # Fungsi tujuan: Maksimalkan 40x1 + 30x2
-    # Kendala:
-    # 2x1 + x2 <= 100 (bahan baku)
-    # x1 + 2x2 <= 80  (jam kerja)
+st.markdown("Masukkan data keuntungan dan kendala produksi untuk Keju A dan Keju B")
 
-    c = [-40, -30]  # tanda minus karena linprog meminimalkan
-    A = [[2, 1], [1, 2]]
-    b = [100, 80]
-    bounds = [(0, None), (0, None)]  # x1 dan x2 >= 0
+# ----------------------------
+# Input Fungsi Tujuan
+# ----------------------------
+st.subheader("Fungsi Tujuan: Maksimalkan Z = a1*x1 + a2*x2")
+a1 = st.number_input("Koefisien Keuntungan Keju A (a1)", value=40)
+a2 = st.number_input("Koefisien Keuntungan Keju B (a2)", value=30)
 
+# ----------------------------
+# Input Kendala
+# ----------------------------
+st.subheader("Kendala Produksi")
+st.markdown("Kendala 1: b1*x1 + b2*x2 ≤ batas1 (misal: bahan baku)")
+b1 = st.number_input("Koefisien x1 pada Kendala 1", value=2.0)
+b2 = st.number_input("Koefisien x2 pada Kendala 1", value=1.0)
+batas1 = st.number_input("Batas Kendala 1", value=100.0)
+
+st.markdown("Kendala 2: c1*x1 + c2*x2 ≤ batas2 (misal: waktu kerja)")
+c1 = st.number_input("Koefisien x1 pada Kendala 2", value=1.0)
+c2 = st.number_input("Koefisien x2 pada Kendala 2", value=2.0)
+batas2 = st.number_input("Batas Kendala 2", value=80.0)
+
+# Tombol jalankan optimasi
+if st.button("Hitung Produksi Optimal"):
+
+    # Fungsi tujuan negatif karena linprog meminimalkan
+    c = [-a1, -a2]
+
+    # Matriks kendala dan batasnya
+    A = [[b1, b2], [c1, c2]]
+    b = [batas1, batas2]
+
+    # Batasan variabel ≥ 0
+    bounds = [(0, None), (0, None)]
+
+    # Hitung solusi
     result = linprog(c, A_ub=A, b_ub=b, bounds=bounds)
 
     if result.success:
         x1, x2 = result.x
-        st.success(f"Produksi Optimal: Keju A = {x1:.2f}, Keju B = {x2:.2f}")
+        st.success(f"Keju A = {x1:.2f} kg, Keju B = {x2:.2f} kg")
         st.info(f"Keuntungan Maksimum: Rp {abs(result.fun):,.0f}")
-    
-        # Visualisasi area solusi
-        x = np.linspace(0, 60, 400)
-        y1 = (100 - 2*x)
-        y2 = (80 - x) / 2
+
+        # Visualisasi grafik area solusi
+        x = np.linspace(0, 100, 400)
+        y1 = (batas1 - b1 * x) / b2
+        y2 = (batas2 - c1 * x) / c2
 
         fig, ax = plt.subplots()
-        ax.plot(x, y1, label='Batas Bahan Baku')
-        ax.plot(x, y2, label='Batas Waktu Kerja')
-        ax.fill_between(x, 0, np.minimum(y1, y2), where=(y1 > 0) & (y2 > 0),
-                        color='lightblue', alpha=0.5)
-        ax.set_xlabel("Keju A")
-        ax.set_ylabel("Keju B")
+        ax.plot(x, y1, label='Kendala 1')
+        ax.plot(x, y2, label='Kendala 2')
+        ax.fill_between(x, 0, np.minimum(y1, y2), where=(y1 > 0) & (y2 > 0), color='lightblue', alpha=0.5)
+        ax.set_xlim(left=0)
+        ax.set_ylim(bottom=0)
+        ax.set_xlabel("Keju A (x1)")
+        ax.set_ylabel("Keju B (x2)")
         ax.legend()
-        ax.set_title("Wilayah Solusi")
+        ax.set_title("Wilayah Solusi Produksi")
         st.pyplot(fig)
-
+    else:
+        st.error("Optimasi gagal. Coba cek input kendala.")
 # =============================
 # MENU 2: Model Persediaan (EOQ)
 # =============================
